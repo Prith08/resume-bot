@@ -176,6 +176,8 @@ async def collect_objective(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def collect_education(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     text = update.message.text.strip()
+    if text == "/cancel":
+        return await cancel(update, context)
     if text == "/skip":
         user_data_store[user_id]["education"] = []
     else:
@@ -208,6 +210,8 @@ async def collect_education(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def collect_experience(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     text = update.message.text.strip()
+    if text == "/cancel":
+        return await cancel(update, context)
     if text == "/skip":
         user_data_store[user_id]["work_experience"] = []
     else:
@@ -244,6 +248,8 @@ async def collect_experience(update: Update, context: ContextTypes.DEFAULT_TYPE)
 async def collect_skills(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     text = update.message.text.strip()
+    if text == "/cancel":
+        return await cancel(update, context)
     if text == "/skip":
         user_data_store[user_id]["skills"] = []
     else:
@@ -263,6 +269,8 @@ async def collect_skills(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def collect_projects(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     text = update.message.text.strip()
+    if text == "/cancel":
+        return await cancel(update, context)
     if text == "/skip":
         user_data_store[user_id]["projects"] = []
     else:
@@ -297,6 +305,8 @@ async def collect_projects(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def collect_certifications(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     text = update.message.text.strip()
+    if text == "/cancel":
+        return await cancel(update, context)
     if text == "/skip":
         user_data_store[user_id]["certifications"] = []
     else:
@@ -620,11 +630,11 @@ def get_conversation_handler():
             WAITING_PHONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, collect_phone)],
             WAITING_LOCATION: [MessageHandler(filters.TEXT & ~filters.COMMAND, collect_location)],
             WAITING_OBJECTIVE: [MessageHandler(filters.TEXT & ~filters.COMMAND, collect_objective)],
-            WAITING_EDUCATION: [MessageHandler(filters.TEXT & ~filters.COMMAND, collect_education)],
-            WAITING_EXPERIENCE: [MessageHandler(filters.TEXT & ~filters.COMMAND, collect_experience)],
-            WAITING_SKILLS: [MessageHandler(filters.TEXT & ~filters.COMMAND, collect_skills)],
-            WAITING_PROJECTS: [MessageHandler(filters.TEXT & ~filters.COMMAND, collect_projects)],
-            WAITING_CERTIFICATIONS: [MessageHandler(filters.TEXT & ~filters.COMMAND, collect_certifications)],
+            WAITING_EDUCATION: [MessageHandler(filters.TEXT, collect_education)],
+            WAITING_EXPERIENCE: [MessageHandler(filters.TEXT, collect_experience)],
+            WAITING_SKILLS: [MessageHandler(filters.TEXT, collect_skills)],
+            WAITING_PROJECTS: [MessageHandler(filters.TEXT, collect_projects)],
+            WAITING_CERTIFICATIONS: [MessageHandler(filters.TEXT, collect_certifications)],
             WAITING_JOB_ROLE: [CallbackQueryHandler(handle_job_role_callback, pattern="^jobrole_")],
             WAITING_TEMPLATE: [CallbackQueryHandler(handle_template_selection, pattern="^template_")],
             WAITING_EDIT_SECTION: [
