@@ -58,29 +58,40 @@ def create_styles(template="modern"):
 
     styles.add(ParagraphStyle(
         name="HeaderName",
-        fontSize=24,
+        fontSize=26,
         textColor=HexColor(theme["primary"]),
         fontName="Helvetica-Bold",
         alignment=TA_CENTER,
-        spaceAfter=4,
+        spaceAfter=2,
     ))
 
     styles.add(ParagraphStyle(
         name="ContactInfo",
         fontSize=10,
-        textColor=HexColor(theme["secondary"]),
+        textColor=HexColor(theme["text"]),
         fontName="Helvetica",
         alignment=TA_CENTER,
-        spaceAfter=8,
+        spaceBefore=4,
+        spaceAfter=12,
+        leading=14,
+    ))
+
+    styles.add(ParagraphStyle(
+        name="ContactLink",
+        fontSize=10,
+        textColor=HexColor(theme["secondary"]),
+        fontName="Helvetica-Bold",
+        alignment=TA_CENTER,
     ))
 
     styles.add(ParagraphStyle(
         name="SectionTitle",
-        fontSize=14,
+        fontSize=13,
         textColor=HexColor(theme["primary"]),
         fontName="Helvetica-Bold",
-        spaceBefore=12,
-        spaceAfter=6,
+        spaceBefore=14,
+        spaceAfter=4,
+        leading=16,
     ))
 
     styles.add(ParagraphStyle(
@@ -88,8 +99,9 @@ def create_styles(template="modern"):
         fontSize=11,
         textColor=HexColor(theme["secondary"]),
         fontName="Helvetica-Bold",
-        spaceBefore=6,
-        spaceAfter=3,
+        spaceBefore=8,
+        spaceAfter=2,
+        leading=14,
     ))
 
     styles.add(ParagraphStyle(
@@ -98,7 +110,7 @@ def create_styles(template="modern"):
         textColor=HexColor(theme["text"]),
         fontName="Helvetica",
         spaceAfter=4,
-        leading=14,
+        leading=15,
     ))
 
     styles.add(ParagraphStyle(
@@ -108,15 +120,7 @@ def create_styles(template="modern"):
         fontName="Helvetica",
         leftIndent=20,
         spaceAfter=2,
-        leading=13,
-    ))
-
-    styles.add(ParagraphStyle(
-        name="SkillTag",
-        fontSize=9,
-        textColor=HexColor(theme["primary"]),
-        fontName="Helvetica",
-        backColor=HexColor(theme["light"]),
+        leading=14,
     ))
 
     return styles
@@ -137,78 +141,87 @@ def build_resume(user_data, enhanced_data=None, template="modern", output_filena
     theme = THEMES.get(template, THEMES["modern"])
     story = []
 
-    # Header - Name
+    story.append(Spacer(1, 6))
+
     story.append(Paragraph(user_data.get("full_name", "Your Name"), styles["HeaderName"]))
 
-    # Contact Info
     contact_parts = []
     if user_data.get("email"):
-        contact_parts.append(user_data["email"])
+        contact_parts.append(f'<font color="{theme["secondary"]}">{user_data["email"]}</font>')
     if user_data.get("phone"):
-        contact_parts.append(user_data["phone"])
+        contact_parts.append(f'<font color="{theme["secondary"]}">{user_data["phone"]}</font>')
     if user_data.get("location"):
         contact_parts.append(user_data["location"])
-    contact_line = " | ".join(contact_parts)
-    story.append(Paragraph(contact_line, styles["ContactInfo"]))
 
-    # Separator
-    story.append(HRFlowable(width="100%", thickness=2, color=HexColor(theme["primary"])))
-    story.append(Spacer(1, 8))
+    if contact_parts:
+        contact_line = "  •  ".join(contact_parts)
+        story.append(Paragraph(contact_line, styles["ContactInfo"]))
 
-    # Professional Summary
+    story.append(HRFlowable(width="70%", thickness=2, color=HexColor(theme["primary"]), spaceAfter=4))
+    story.append(Spacer(1, 6))
+
+    def add_section(title):
+        story.append(Paragraph(title, styles["SectionTitle"]))
+        story.append(HRFlowable(width="100%", thickness=1, color=HexColor(theme["light"])))
+        story.append(Spacer(1, 4))
+
     summary = enhanced_data.get("summary", "") if enhanced_data else ""
     if not summary:
         summary = user_data.get("career_objective", "")
-
     if summary:
-        story.append(Paragraph("PROFESSIONAL SUMMARY", styles["SectionTitle"]))
-        story.append(HRFlowable(width="100%", thickness=1, color=HexColor(theme["secondary"])))
-        story.append(Spacer(1, 4))
+        add_section("PROFESSIONAL SUMMARY")
         story.append(Paragraph(summary, styles["BodyText2"]))
 
-    # Skills
     skills = enhanced_data.get("skills", user_data.get("skills", [])) if enhanced_data else user_data.get("skills", [])
     if skills:
-        story.append(Paragraph("SKILLS", styles["SectionTitle"]))
-        story.append(HRFlowable(width="100%", thickness=1, color=HexColor(theme["secondary"])))
-        story.append(Spacer(1, 4))
-
+        add_section("SKILLS")
         if isinstance(skills, dict):
             for category, skill_list in skills.items():
-                story.append(Paragraph(f"<b>{category}:</b> {', '.join(skill_list)}", styles["BulletText"]))
+                story.append(Paragraph(f"<b>{category}:</b>  {', '.join(skill_list)}", styles["BodyText2"]))
         elif isinstance(skills, list):
-            skill_text = " | ".join(skills)
-            story.append(Paragraph(skill_text, styles["BulletText"]))
+            cols = 2
+            mid = (len(skills) + 1) // 2
+            left = skills[:mid]
+            right = skills[mid:]
+            skill_data = []
+            for i in range(max(len(left), len(right))):
+                l = left[i] if i < len(left) else ""
+                r = right[i] if i < len(right) else ""
+                skill_data.append((l, r))
+            t = Table(skill_data, colWidths=[doc.width/2.2, doc.width/2.2])
+            t.setStyle(TableStyle([
+                ("FONTNAME", (0, 0), (-1, -1), "Helvetica"),
+                ("FONTSIZE", (0, 0), (-1, -1), 10),
+                ("TEXTCOLOR", (0, 0), (-1, -1), HexColor(theme["text"])),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
+                ("TOPPADDING", (0, 0), (-1, -1), 2),
+                ("LEFTPADDING", (0, 0), (-1, -1), 4),
+            ]))
+            story.append(t)
 
-    # Education
     education = enhanced_data.get("education", user_data.get("education", [])) if enhanced_data else user_data.get("education", [])
     if education:
-        story.append(Paragraph("EDUCATION", styles["SectionTitle"]))
-        story.append(HRFlowable(width="100%", thickness=1, color=HexColor(theme["secondary"])))
-        story.append(Spacer(1, 4))
-
+        add_section("EDUCATION")
         for edu in education:
             if isinstance(edu, dict):
                 degree = edu.get("degree", "")
                 school = edu.get("school", edu.get("institution", ""))
                 year = edu.get("year", edu.get("graduation_year", ""))
                 gpa = edu.get("gpa", "")
-                line = f"<b>{degree}</b> - {school}"
+                line = f"<b>{degree}</b>"
+                if school:
+                    line += f"  —  {school}"
                 if year:
-                    line += f" ({year})"
+                    line += f"  ({year})"
                 story.append(Paragraph(line, styles["SubSection"]))
                 if gpa:
                     story.append(Paragraph(f"GPA: {gpa}", styles["BulletText"]))
             else:
                 story.append(Paragraph(str(edu), styles["BodyText2"]))
 
-    # Work Experience
     experience = enhanced_data.get("experience", user_data.get("work_experience", [])) if enhanced_data else user_data.get("work_experience", [])
     if experience:
-        story.append(Paragraph("WORK EXPERIENCE", styles["SectionTitle"]))
-        story.append(HRFlowable(width="100%", thickness=1, color=HexColor(theme["secondary"])))
-        story.append(Spacer(1, 4))
-
+        add_section("WORK EXPERIENCE")
         for exp in experience:
             if isinstance(exp, dict):
                 title = exp.get("title", exp.get("position", ""))
@@ -218,61 +231,52 @@ def build_resume(user_data, enhanced_data=None, template="modern", output_filena
 
                 header = f"<b>{title}</b>"
                 if company:
-                    header += f" at {company}"
+                    header += f"  —  {company}"
                 if duration:
-                    header += f" ({duration})"
+                    header += f"  ({duration})"
                 story.append(Paragraph(header, styles["SubSection"]))
 
                 if isinstance(description, list):
                     for desc in description:
-                        story.append(Paragraph(f"• {desc}", styles["BulletText"]))
+                        story.append(Paragraph(f"•  {desc}", styles["BulletText"]))
                 elif description:
-                    story.append(Paragraph(str(description), styles["BulletText"]))
+                    story.append(Paragraph(f"•  {description}", styles["BulletText"]))
             else:
                 story.append(Paragraph(str(exp), styles["BodyText2"]))
 
-    # Projects
     projects = enhanced_data.get("projects", user_data.get("projects", [])) if enhanced_data else user_data.get("projects", [])
     if projects:
-        story.append(Paragraph("PROJECTS", styles["SectionTitle"]))
-        story.append(HRFlowable(width="100%", thickness=1, color=HexColor(theme["secondary"])))
-        story.append(Spacer(1, 4))
-
+        add_section("PROJECTS")
         for project in projects:
             if isinstance(project, dict):
                 name = project.get("name", project.get("title", ""))
                 desc = project.get("description", "")
                 tech = project.get("technologies", project.get("tech_stack", ""))
-
                 line = f"<b>{name}</b>"
                 if tech:
-                    line += f" | {tech}"
+                    line += f"  —  {tech}"
                 story.append(Paragraph(line, styles["SubSection"]))
                 if desc:
                     story.append(Paragraph(desc, styles["BulletText"]))
             else:
                 story.append(Paragraph(str(project), styles["BodyText2"]))
 
-    # Certifications
     certifications = enhanced_data.get("certifications", user_data.get("certifications", [])) if enhanced_data else user_data.get("certifications", [])
     if certifications:
-        story.append(Paragraph("CERTIFICATIONS", styles["SectionTitle"]))
-        story.append(HRFlowable(width="100%", thickness=1, color=HexColor(theme["secondary"])))
-        story.append(Spacer(1, 4))
-
+        add_section("CERTIFICATIONS")
         for cert in certifications:
             if isinstance(cert, dict):
                 name = cert.get("name", "")
                 issuer = cert.get("issuer", cert.get("organization", ""))
                 year = cert.get("year", cert.get("date", ""))
-                line = f"• {name}"
+                line = f"•  {name}"
                 if issuer:
-                    line += f" - {issuer}"
+                    line += f"  —  {issuer}"
                 if year:
-                    line += f" ({year})"
+                    line += f"  ({year})"
                 story.append(Paragraph(line, styles["BulletText"]))
             else:
-                story.append(Paragraph(f"• {cert}", styles["BulletText"]))
+                story.append(Paragraph(f"•  {cert}", styles["BulletText"]))
 
     doc.build(story)
     return filepath
