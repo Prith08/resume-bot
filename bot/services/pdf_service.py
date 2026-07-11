@@ -77,14 +77,6 @@ def create_styles(template="modern"):
     ))
 
     styles.add(ParagraphStyle(
-        name="ContactLink",
-        fontSize=10,
-        textColor=HexColor(theme["secondary"]),
-        fontName="Helvetica-Bold",
-        alignment=TA_CENTER,
-    ))
-
-    styles.add(ParagraphStyle(
         name="SectionTitle",
         fontSize=13,
         textColor=HexColor(theme["primary"]),

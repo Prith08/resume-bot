@@ -1,4 +1,7 @@
+import os
 import logging
+import threading
+from http.server import HTTPServer, BaseHTTPRequestHandler
 from telegram.ext import Application, CommandHandler
 
 from config import BOT_TOKEN
@@ -12,6 +15,23 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+class HealthHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"OK")
+
+    def log_message(self, format, *args):
+        pass
+
+
+def start_health_server():
+    port = int(os.environ.get("PORT", 8000))
+    server = HTTPServer(("0.0.0.0", port), HealthHandler)
+    logger.info(f"Health check server listening on port {port}")
+    server.serve_forever()
+
+
 def main():
     if not BOT_TOKEN or BOT_TOKEN == "your_telegram_bot_token_here":
         logger.error("BOT_TOKEN is not set. Edit .env with your real token.")
@@ -19,6 +39,9 @@ def main():
 
     init_db()
     logger.info("Database initialized.")
+
+    t = threading.Thread(target=start_health_server, daemon=True)
+    t.start()
 
     app = Application.builder().token(BOT_TOKEN).build()
 
