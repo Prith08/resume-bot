@@ -1,6 +1,8 @@
 import os
+import time
 import logging
 import threading
+import urllib.request
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from telegram.ext import Application, CommandHandler
 
@@ -32,6 +34,19 @@ def start_health_server():
     server.serve_forever()
 
 
+def self_ping():
+    url = os.environ.get("RENDER_EXTERNAL_URL")
+    if not url:
+        return
+    while True:
+        time.sleep(480)
+        try:
+            urllib.request.urlopen(url, timeout=10)
+            logger.debug("Self-ping successful")
+        except Exception as e:
+            logger.warning(f"Self-ping failed: {e}")
+
+
 def main():
     if not BOT_TOKEN or BOT_TOKEN == "your_telegram_bot_token_here":
         logger.error("BOT_TOKEN is not set. Edit .env with your real token.")
@@ -40,8 +55,8 @@ def main():
     init_db()
     logger.info("Database initialized.")
 
-    t = threading.Thread(target=start_health_server, daemon=True)
-    t.start()
+    threading.Thread(target=start_health_server, daemon=True).start()
+    threading.Thread(target=self_ping, daemon=True).start()
 
     app = Application.builder().token(BOT_TOKEN).build()
 
