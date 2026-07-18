@@ -1,5 +1,6 @@
 import os
 import time
+import json
 import logging
 import threading
 import urllib.request
@@ -16,12 +17,22 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+bot_running = False
+bot_error = None
+
 
 class HealthHandler(BaseHTTPRequestHandler):
     def do_GET(self):
-        self.send_response(200)
-        self.end_headers()
-        self.wfile.write(b"OK")
+        if self.path == "/status":
+            status = {"bot_running": bot_running, "error": bot_error}
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps(status).encode())
+        else:
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b"OK")
 
     def log_message(self, format, *args):
         pass
@@ -48,25 +59,37 @@ def self_ping():
 
 
 def main():
+    global bot_running, bot_error
+
     if not BOT_TOKEN or BOT_TOKEN == "your_telegram_bot_token_here":
-        logger.error("BOT_TOKEN is not set. Edit .env with your real token.")
+        bot_error = "BOT_TOKEN not set"
+        logger.error(bot_error)
         return
 
-    init_db()
-    logger.info("Database initialized.")
+    try:
+        init_db()
+        logger.info("Database initialized.")
+    except Exception as e:
+        bot_error = f"DB init failed: {e}"
+        logger.error(bot_error)
+        return
 
     threading.Thread(target=start_health_server, daemon=True).start()
     threading.Thread(target=self_ping, daemon=True).start()
 
-    app = Application.builder().token(BOT_TOKEN).build()
+    try:
+        app = Application.builder().token(BOT_TOKEN).build()
+        conv_handler = get_conversation_handler()
+        app.add_handler(conv_handler)
+        app.add_handler(CommandHandler("cancel", cancel))
 
-    conv_handler = get_conversation_handler()
-    app.add_handler(conv_handler)
-
-    app.add_handler(CommandHandler("cancel", cancel))
-
-    logger.info("Bot started polling...")
-    app.run_polling(allowed_updates=["message", "callback_query"])
+        logger.info("Bot started polling...")
+        bot_running = True
+        app.run_polling(allowed_updates=["message", "callback_query"])
+    except Exception as e:
+        bot_error = str(e)
+        logger.error(f"Bot crashed: {e}", exc_info=True)
+        raise
 
 
 if __name__ == "__main__":
